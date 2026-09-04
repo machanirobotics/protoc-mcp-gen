@@ -70,7 +70,7 @@ Open-sourced by **The Protobuf Project**.
 
 | Language   | Generated File                     | Example                              |
 |------------|------------------------------------|--------------------------------------|
-| **Go**     | `*_service.pb.mcp.go`              | [`examples/go`](examples/go)         |
+| **Go**     | `*_service.pb.mcp.go` + one `mcp_shared.pb.mcp.go` per package | [`examples/go`](examples/go)         |
 | **Rust**   | `*_service.mcp.rs`                 | [`examples/rust`](examples/rust)     |
 | **C++**    | `*_service.mcp.h/cc` + Rust bridge | [`examples/cpp`](examples/cpp)       |
 

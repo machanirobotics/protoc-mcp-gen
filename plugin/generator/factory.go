@@ -2,6 +2,8 @@ package generator
 
 import (
 	"fmt"
+	"path"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
@@ -66,9 +68,7 @@ func (t Target) Generate(ctx factory.Ctx, m *Model, lang string) error {
 	}
 	switch lang {
 	case LangGo:
-		for _, f := range m.Files {
-			NewFileGenerator(f, ctx.Plugin).Generate(t.PackageSuffix)
-		}
+		t.generateGo(ctx.Plugin, m)
 	case LangRust:
 		for _, f := range m.Files {
 			NewRustFileGenerator(f, ctx.Plugin).Generate()
@@ -80,6 +80,37 @@ func (t Target) Generate(ctx factory.Ctx, m *Model, lang string) error {
 			lang, strings.Join(t.Languages(), ", "))
 	}
 	return nil
+}
+
+// generateGo emits a *.pb.mcp.go per service-bearing file, then the shared
+// helper file each Go package needs exactly one of.
+//
+// The grouping is what makes a package with two service-bearing protos compile:
+// see [GenerateGoShared]. Packages are emitted in the order protoc listed their
+// first file so the response is deterministic, and the sibling stems are
+// collected per package to catch a proto that would claim the shared file's
+// name.
+func (t Target) generateGo(gen *protogen.Plugin, m *Model) {
+	siblings := make(map[GoPackageOutput][]string)
+	var order []GoPackageOutput
+
+	for _, f := range m.Files {
+		fg := NewFileGenerator(f, gen)
+		fg.Generate(t.PackageSuffix)
+		pkg, ok := fg.PackageOutput()
+		if !ok {
+			continue
+		}
+		if _, seen := siblings[pkg]; !seen {
+			order = append(order, pkg)
+		}
+		// Read after Generate: package_suffix rewrites the prefix in place.
+		siblings[pkg] = append(siblings[pkg], path.Base(filepath.ToSlash(f.GeneratedFilenamePrefix)))
+	}
+
+	for _, pkg := range order {
+		GenerateGoShared(gen, pkg, siblings[pkg])
+	}
 }
 
 // generateCpp emits C++ for every file that declares a service, in path order.
