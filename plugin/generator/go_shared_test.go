@@ -8,6 +8,7 @@ import (
 	"go/parser"
 	"go/token"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -136,13 +137,15 @@ func TestGoHelpersAreDeclaredOncePerPackage(t *testing.T) {
 
 	out := runGoTarget(t, plugin, "")
 
+	helpers := []string{"newTool", "boolPtr", "structuredResult"}
+
 	counts := make(map[string]int)
 	for name, src := range out {
 		for _, fn := range topLevelFuncs(t, name, src) {
 			counts[fn]++
 		}
 	}
-	for _, helper := range []string{"newTool", "boolPtr", "structuredResult"} {
+	for _, helper := range helpers {
 		if counts[helper] != 1 {
 			t.Errorf("%s declared %d times across the package, want 1", helper, counts[helper])
 		}
@@ -151,15 +154,28 @@ func TestGoHelpersAreDeclaredOncePerPackage(t *testing.T) {
 	// The declaration lives in the shared file, not in one of the per-proto
 	// files: a package regenerated one proto at a time must converge on the same
 	// output rather than moving the helpers to whichever file was generated last.
+	//
+	// Counted within the shared file, not just across the package: a single
+	// declaration sitting in property_service.pb.mcp.go satisfies the totals
+	// above while leaving the shared file empty, which is the arrangement this
+	// is here to rule out.
 	shared := "example.com/gen/estate/v1/mcp_shared.pb.mcp.go"
-	if _, ok := out[shared]; !ok {
+	src, ok := out[shared]
+	if !ok {
 		t.Fatalf("no shared file at %s; generated: %s", shared, strings.Join(sortedKeys(out), ", "))
 	}
-	for _, helper := range topLevelFuncs(t, shared, out[shared]) {
-		switch helper {
-		case "newTool", "boolPtr", "structuredResult":
-		default:
-			t.Errorf("shared file declares unexpected func %s", helper)
+	sharedCounts := make(map[string]int)
+	for _, fn := range topLevelFuncs(t, shared, src) {
+		sharedCounts[fn]++
+	}
+	for _, helper := range helpers {
+		if sharedCounts[helper] != 1 {
+			t.Errorf("shared file declares %s %d times, want 1", helper, sharedCounts[helper])
+		}
+	}
+	for fn := range sharedCounts {
+		if !slices.Contains(helpers, fn) {
+			t.Errorf("shared file declares unexpected func %s", fn)
 		}
 	}
 }

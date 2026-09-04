@@ -3,52 +3,83 @@
 
 name: Dependabot auto-merge
 
-# Turns on GitHub's auto-merge for every pull request Dependabot opens
-# (.github/dependabot.yaml schedules them weekly). Auto-merge holds the PR until
-# every status check required on main has passed, then merges it — so this
-# workflow decides *that* a Dependabot PR may merge unattended, while the branch
-# protection on main decides *what* has to be green first.
+# Merges a Dependabot pull request once CI has gone green on it.
 #
-# That split is worth knowing about: if main has no required status checks, auto-
-# merge has nothing to wait for and lands the PR as soon as it is mergeable,
-# whatever CI later reports. The required checks are the gate, not this file.
+# The usual recipe for this is `gh pr merge --auto` on pull_request_target, but
+# GitHub's auto-merge only waits for the status checks that branch protection
+# marks *required*. main has no branch protection here, so auto-merge would have
+# nothing to wait for and would land every Dependabot PR the moment it opened,
+# whatever CI said afterwards — the opposite of the intent.
 #
-# pull_request_target rather than pull_request: a workflow triggered by
-# Dependabot on pull_request gets a read-only GITHUB_TOKEN, which cannot approve
-# a PR or enable auto-merge. pull_request_target runs in the context of the base
-# branch, where the token carries the permissions below. That trigger is only
-# safe because nothing here checks out, builds, or executes the pull request's
-# code — it makes two API calls against the PR and reads no file from it. Adding
-# a checkout step to this workflow would run Dependabot-authored code with a
-# write-scoped token.
+# Keying on workflow_run instead makes the CI result itself the trigger: this
+# job only starts once the CI workflow has finished, and only proceeds when it
+# finished successfully. A CI workflow concluding success means every one of its
+# jobs passed, so "all checks passed" is decided by ci.yaml rather than by
+# repository settings that are not set.
+#
+# workflow_run runs in the context of the base branch, which is what gives the
+# token below write access — the same trust model as pull_request_target, and
+# safe for the same reason: nothing here checks out, builds, or executes the
+# pull request's code.
 on:
-  pull_request_target:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  auto-merge:
-    name: Enable auto-merge
+  merge:
+    name: Merge if CI passed
     runs-on: ubuntu-latest
-    # The author, not github.actor: on a synchronize event the actor is whoever
-    # pushed, so keying on it would let a human push a commit onto a Dependabot
-    # branch and have it approved automatically.
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
     steps:
-      # Only needed while main requires a review to merge. It is harmless
-      # otherwise, and leaving it in means turning that requirement on later
-      # does not silently strand every Dependabot PR waiting for a human.
-      - name: Approve
-        run: gh pr review --approve "$PR_URL"
+      - name: Merge the Dependabot PR
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
 
-      # --merge matches how this repository's history records merged PRs.
-      - name: Enable auto-merge
-        run: gh pr merge --auto --merge "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Resolve the PR from the commit CI actually ran on, rather than from
+          # the branch name: it ties every check below to that exact commit.
+          pr=$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" \
+                 --jq '[.[] | select(.state == "open")] | first')
+          if [ -z "$pr" ] || [ "$pr" = "null" ]; then
+            echo "No open PR for $HEAD_SHA — nothing to merge."
+            exit 0
+          fi
+
+          number=$(jq -r .number <<<"$pr")
+          author=$(jq -r .user.login <<<"$pr")
+          base=$(jq -r .base.ref <<<"$pr")
+          head=$(jq -r .head.sha <<<"$pr")
+
+          # The workflow_run actor is unreliable on re-runs, so the PR's own
+          # author is what decides whether this PR may merge unattended.
+          if [ "$author" != "dependabot[bot]" ]; then
+            echo "PR #$number is authored by $author, not Dependabot — leaving it alone."
+            exit 0
+          fi
+
+          if [ "$base" != "main" ]; then
+            echo "PR #$number targets $base, not main — leaving it alone."
+            exit 0
+          fi
+
+          # CI passed on HEAD_SHA. If the branch has moved since, that newer
+          # commit is untested, and merging it would merge something no check
+          # has seen. Its own CI run will bring us back here.
+          if [ "$head" != "$HEAD_SHA" ]; then
+            echo "PR #$number advanced to $head since CI ran on $HEAD_SHA — waiting for that run."
+            exit 0
+          fi
+
+          echo "Merging PR #$number ($author) — CI passed on $HEAD_SHA."
+          # --merge matches how this repository's history records merged PRs.
+          gh pr merge "$number" --repo "$REPO" --merge
