@@ -1,0 +1,54 @@
+# Copyright 2026 The Protobuf Project authors.
+# SPDX-License-Identifier: Apache-2.0
+
+name: Dependabot auto-merge
+
+# Turns on GitHub's auto-merge for every pull request Dependabot opens
+# (.github/dependabot.yaml schedules them weekly). Auto-merge holds the PR until
+# every status check required on main has passed, then merges it — so this
+# workflow decides *that* a Dependabot PR may merge unattended, while the branch
+# protection on main decides *what* has to be green first.
+#
+# That split is worth knowing about: if main has no required status checks, auto-
+# merge has nothing to wait for and lands the PR as soon as it is mergeable,
+# whatever CI later reports. The required checks are the gate, not this file.
+#
+# pull_request_target rather than pull_request: a workflow triggered by
+# Dependabot on pull_request gets a read-only GITHUB_TOKEN, which cannot approve
+# a PR or enable auto-merge. pull_request_target runs in the context of the base
+# branch, where the token carries the permissions below. That trigger is only
+# safe because nothing here checks out, builds, or executes the pull request's
+# code — it makes two API calls against the PR and reads no file from it. Adding
+# a checkout step to this workflow would run Dependabot-authored code with a
+# write-scoped token.
+on:
+  pull_request_target:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Enable auto-merge
+    runs-on: ubuntu-latest
+    # The author, not github.actor: on a synchronize event the actor is whoever
+    # pushed, so keying on it would let a human push a commit onto a Dependabot
+    # branch and have it approved automatically.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      # Only needed while main requires a review to merge. It is harmless
+      # otherwise, and leaving it in means turning that requirement on later
+      # does not silently strand every Dependabot PR waiting for a human.
+      - name: Approve
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # --merge matches how this repository's history records merged PRs.
+      - name: Enable auto-merge
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
