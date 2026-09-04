@@ -1,3 +1,6 @@
+// Copyright 2026 The Protobuf Project authors.
+// SPDX-License-Identifier: Apache-2.0
+
 package generator
 
 import (
@@ -55,12 +58,31 @@ type TplParams struct {
 	HasAnyMethods     bool                       // true if any service has any methods (needed for grpc/protojson imports)
 }
 
+// GoPackageOutput identifies the Go package one generated file belongs to, and
+// where its siblings are written. [GenerateGoShared] emits one shared file per
+// distinct value.
+//
+// It is resolved during generation rather than read off the protogen.File
+// because package_suffix rewrites both the package name and the output path.
+type GoPackageOutput struct {
+	// Dir is the directory the package's generated files are written to, in the
+	// same address space as GeneratedFilenamePrefix: source-relative under
+	// paths=source_relative, and import-path-prefixed otherwise.
+	Dir string
+	// PackageName is the Go package clause the generated files carry.
+	PackageName string
+	// ImportPath is the package's Go import path.
+	ImportPath protogen.GoImportPath
+}
+
 // FileGenerator produces a single *.pb.mcp.go file from a protobuf file.
 type FileGenerator struct {
 	f             *protogen.File
 	gen           *protogen.Plugin
 	gf            *protogen.GeneratedFile
 	genImportPath protogen.GoImportPath
+	pkg           GoPackageOutput
+	generated     bool
 }
 
 // NewFileGenerator creates a FileGenerator for the given protobuf file.
@@ -101,6 +123,12 @@ func (g *FileGenerator) Generate(packageSuffix string) {
 		goImportPath,
 	)
 	g.genImportPath = goImportPath
+	g.pkg = GoPackageOutput{
+		Dir:         path.Dir(filepath.ToSlash(file.GeneratedFilenamePrefix)),
+		PackageName: string(file.GoPackageName),
+		ImportPath:  goImportPath,
+	}
+	g.generated = true
 
 	params := g.buildParams()
 	var buf bytes.Buffer

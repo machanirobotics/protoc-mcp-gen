@@ -6,6 +6,7 @@ go_library(
         "cpp.go",
         "factory.go",
         "generator.go",
+        "go_shared.go",
         "helpers.go",
         "options_compat.go",
         "options_enums.go",
@@ -40,8 +41,10 @@ go_library(
 go_test(
     name = "generator_test",
     srcs = [
+        "cpp_shared_file_test.go",
         "escape_test.go",
         "factory_test.go",
+        "go_shared_test.go",
         "options_enums_test.go",
         "schema_recursion_test.go",
     ],
@@ -54,5 +57,6 @@ go_test(
         "@org_golang_google_protobuf//reflect/protodesc",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//types/descriptorpb",
+        "@org_golang_google_protobuf//types/pluginpb",
     ],
 )

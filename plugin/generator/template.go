@@ -1,3 +1,6 @@
+// Copyright 2026 The Protobuf Project authors.
+// SPDX-License-Identifier: Apache-2.0
+
 package generator
 
 import (
@@ -90,9 +93,10 @@ var (
 // without a FuncMap, and text/template rejects a template referencing an unknown
 // function at parse time, so the funcs above must be registered first.
 var (
-	goTemplate   = mustParseTemplate("gen", "go.tpl", goFuncMap)
-	rustTemplate = mustParseTemplate("rsgen", "rust.tpl", rustFuncMap)
-	cppTemplates = mustParseGlob("cpp/*.tpl", cppFuncMap)
+	goTemplate       = mustParseTemplate("gen", "go.tpl", goFuncMap)
+	goSharedTemplate = mustParseTemplate("gensh", "go_shared.tpl", goFuncMap)
+	rustTemplate     = mustParseTemplate("rsgen", "rust.tpl", rustFuncMap)
+	cppTemplates     = mustParseGlob("cpp/*.tpl", cppFuncMap)
 )
 
 // mustParseTemplate parses a single embedded template. It panics on failure, so

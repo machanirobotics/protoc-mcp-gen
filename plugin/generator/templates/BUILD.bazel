@@ -15,6 +15,7 @@ go_library(
         "cpp/mcp_include.tpl",
         "go.tpl",
         "rust.tpl",
+        "go_shared.tpl",
     ],
     importpath = "github.com/the-protobuf-project/mcp/plugin/generator/templates",
     visibility = ["//visibility:public"],

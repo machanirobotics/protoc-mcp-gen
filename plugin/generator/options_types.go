@@ -1,3 +1,6 @@
+// Copyright 2026 The Protobuf Project authors.
+// SPDX-License-Identifier: Apache-2.0
+
 package generator
 
 // MCPServiceOpts is the language-neutral view of MCPServiceOptions for templates.
