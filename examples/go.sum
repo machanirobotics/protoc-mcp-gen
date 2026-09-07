@@ -1,5 +1,5 @@
-buf.build/gen/go/the-protobuf-project/mcp/protocolbuffers/go v1.36.12-20260622085421-d8286d36a0cc.1 h1:OFNdyLrpEmDok2kHoEjpjh3FmHYv4eLdoQLtKhOombg=
-buf.build/gen/go/the-protobuf-project/mcp/protocolbuffers/go v1.36.12-20260622085421-d8286d36a0cc.1/go.mod h1:kZ9MgyFupt5piI1hdfklJMhjLg2hGfXi15CyD6NlyXI=
+buf.build/gen/go/the-protobuf-project/mcp/protocolbuffers/go v1.36.12-20260622085421-d8286d36a0cc.2 h1:4/qANndUEwvnob4x2eFcsQHgVpo3iLznA426vs9smB0=
+buf.build/gen/go/the-protobuf-project/mcp/protocolbuffers/go v1.36.12-20260622085421-d8286d36a0cc.2/go.mod h1:kZ9MgyFupt5piI1hdfklJMhjLg2hGfXi15CyD6NlyXI=
 github.com/a2aproject/a2a-go/v2 v2.4.0 h1:da0iwA6voxLhXIw1B3GSAdrhs5UIa2v6m+v/Fix5qTw=
 github.com/a2aproject/a2a-go/v2 v2.4.0/go.mod h1:EghJ/rY9OCC6jme1z+otOBf+1YCVVCpMSPZU31t3hKY=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
@@ -24,8 +24,6 @@ github.com/segmentio/asm v1.2.1 h1:DTNbBqs57ioxAD4PrArqftgypG4/qNpXoJx8TVXxPR0=
 github.com/segmentio/asm v1.2.1/go.mod h1:BqMnlJP91P8d+4ibuonYZw9mfnzI9HfxselHZr5aAcs=
 github.com/segmentio/encoding v0.5.4 h1:OW1VRern8Nw6ITAtwSZ7Idrl3MXCFwXHPgqESYfvNt0=
 github.com/segmentio/encoding v0.5.4/go.mod h1:HS1ZKa3kSN32ZHVZ7ZLPLXWvOVIiZtyJnO1gPH1sKt0=
-github.com/the-protobuf-project/runtime-go/agents v0.0.0-20260817164241-dc78b149aadf h1:gpZ5eq58/srGAgPMFz2lNOWmIzyWHDunZ65zOVWHjMQ=
-github.com/the-protobuf-project/runtime-go/agents v0.0.0-20260817164241-dc78b149aadf/go.mod h1:CRRoPCBUYLQNczbRzRs5iZRn1v5pk+YpyVLxgmIMomQ=
 github.com/the-protobuf-project/runtime-go/agents v0.0.0-20260818025400-e63524c03160 h1:C/GOGytOZ+ucdpR27tdtr4r5AuedQPRqYdEEDuPIFR4=
 github.com/the-protobuf-project/runtime-go/agents v0.0.0-20260818025400-e63524c03160/go.mod h1:CRRoPCBUYLQNczbRzRs5iZRn1v5pk+YpyVLxgmIMomQ=
 github.com/yosida95/uritemplate/v3 v3.0.2 h1:Ed3Oyj9yrmi9087+NczuL5BwkIc4wvTb5zIM+UJPGz4=
